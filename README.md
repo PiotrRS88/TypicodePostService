@@ -25,3 +25,4 @@ GET http://localhost:8080/posts  <br/>
 <br/>
 Endpoint to get posts by given title: <br/>
 GET http://localhost:8080/posts?title=New%20title <br/>
+<br/> Beside standard fetch via API, typicode posts are fetched by scheduler every day at 6 a.m..  
