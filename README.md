@@ -1,5 +1,5 @@
 # TypicodePostService
-Running backend and frontend application can be done by:<br/>
+Running backend application can be done by:<br/>
 mvn spring-boot:run
 
 Application starts in endpoint as below:
