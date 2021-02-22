@@ -10,5 +10,6 @@ import java.util.List;
 public interface PostsRepository extends JpaRepository<Post, Integer> {
 
     Collection<Post> findByStatusIn(List<PostStatus> statuses);
+
     Collection<Post> findByTitleAndStatusIn(String title, List<PostStatus> statuses);
 }

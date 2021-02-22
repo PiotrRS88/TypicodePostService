@@ -8,6 +8,7 @@ import java.util.List;
 
 @FeignClient(url = "${externalapi.typicodeUrl}", name = "TypiCodePosts")
 public interface PostFeignClient {
+
     @GetMapping("/posts")
     List<TypicodePost> getPosts();
 

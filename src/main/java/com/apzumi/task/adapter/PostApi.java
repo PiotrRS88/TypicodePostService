@@ -9,6 +9,7 @@ import java.util.List;
 
 @Component
 public class PostApi {
+
     private final PostFeignClient client;
 
     @Autowired

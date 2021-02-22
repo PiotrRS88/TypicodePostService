@@ -37,7 +37,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<PostResponse> getAllActivePostsByTitle(String title) {
+    public List<PostResponse> getAllWithFilters(String title) {
         final Collection<Post> foundPosts;
         final List<PostStatus> statusesToFind = Arrays.asList(PostStatus.NEW, PostStatus.MODIFIED);
         if (title != null) {
@@ -63,7 +63,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public void markPostAsDeleted(int id) {
+    public void markPostAsDeleted(Integer id) {
         final Post post = postsRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(format("Post %d has not been found.", id)));
         post.setStatus(PostStatus.DELETED);
@@ -89,6 +89,13 @@ public class PostServiceImpl implements PostService {
                 .collect(Collectors.toList());
 
         postsRepository.saveAll(postsToCreate);
+    }
+
+    @Override
+    public PostResponse getPostById(Integer id) {
+        final Post foundPost = postsRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(format("Post %d has not been found.", id)));
+        return toPostResponse(foundPost);
     }
 
     private Post toPost(TypicodePost typicodePost) {

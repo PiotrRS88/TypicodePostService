@@ -2,91 +2,147 @@ package com.apzumi.task.service;
 
 import com.apzumi.task.dto.PostResponse;
 import com.apzumi.task.exception.NotFoundException;
-import com.apzumi.task.repository.PostsRepository;
 import org.junit.Assert;
-import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 
-import javax.annotation.Resource;
 import java.util.List;
 
-import static com.apzumi.task.postStatus.PostStatus.*;
+import static com.apzumi.task.postStatus.PostStatus.DELETED;
+import static com.apzumi.task.postStatus.PostStatus.MODIFIED;
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 @AutoConfigureWireMock(port = 8081)
+@ActiveProfiles("test")
 class PostServiceImplTest {
-
-    @Resource
-    private PostsRepository postsRepository;
 
     @Autowired
     private PostService postService;
 
     @Test
+    @DisplayName("Should return empty when there's nothing on DB.")
     void shouldReturnEmptyRepository() {
-        List<PostResponse> posts = postService.getAllActivePostsByTitle(null);
+        //when
+        List<PostResponse> posts = postService.getAllWithFilters(null);
+        //then
         Assert.assertTrue(posts.isEmpty());
     }
 
     @Test
-    @Order(1)
+    @DisplayName("Should give 100 posts when we fetch all from Typicode.")
     void shouldFetchPostsToRepository() {
+        //when
         postService.upsertUnmodified();
-        List<PostResponse> posts = postService.getAllActivePostsByTitle(null);
+        List<PostResponse> posts = postService.getAllWithFilters(null);
+        //then
         Assert.assertEquals(100, posts.size());
-
-        PostResponse postToUpdate = posts.get(0);
-        Assert.assertEquals(NEW, postToUpdate.getPostStatus());
     }
 
     @Test
-    @Order(2)
+    @DisplayName("Should update title and body by given id.")
     void shouldUpdateTitleAndBodyByGivenId() {
-        postService.updateTitleAndBodyById(1, "Updated title", "Updated body");
-        List<PostResponse> posts = postService.getAllActivePostsByTitle(null);
-        PostResponse postToUpdate = posts.get(0);
+        //given
+        final int postIdToModify = 1;
+        //when
+        postService.upsertUnmodified();
+        //and
+        postService.updateTitleAndBodyById(postIdToModify, "Updated title", "Updated body");
 
-        Assert.assertEquals("Updated title", postToUpdate.getTitle());
-        Assert.assertEquals("Updated body", postToUpdate.getBody());
-        Assert.assertEquals(MODIFIED, postToUpdate.getPostStatus());
+        PostResponse post = postService.getPostById(postIdToModify);
+
+        Assert.assertEquals("Updated title", post.getTitle());
+        Assert.assertEquals("Updated body", post.getBody());
+        Assert.assertEquals(MODIFIED, post.getPostStatus());
     }
 
     @Test
-    @Order(3)
+    @DisplayName("Should throw exception after giving id which does not exist.")
     void shouldThrowExceptionAfterGivingIdWhichDoesNotExist() {
+        //when
         Exception exception = assertThrows(
                 NotFoundException.class,
                 () -> postService.updateTitleAndBodyById(999, "Updated title", "Updated body"));
-
-        assertTrue(exception.getMessage().contains("not found"));
+        //then
+        assertTrue(exception.getMessage().contains("Post 999 has not been found."));
     }
 
-    @Test
-    @Order(4)
-    void shouldMarkPostAsDeleted() {
-        List<PostResponse> posts = postService.getAllActivePostsByTitle(null);
-        PostResponse postToMarkAsDeleted = posts.get(1);
-        postService.markPostAsDeleted(postToMarkAsDeleted.getId());
-
-        Assert.assertEquals(DELETED, postToMarkAsDeleted.getPostStatus());
-    }
-
-    @Test
-    @Order(5)
-    void shouldFetchUnmodifiedPosts() {
+    @ParameterizedTest
+    @DisplayName("Should check if filtered posts are returned.")
+    @CsvSource({
+            "qui est esse, 1",
+            "Here comes the Sun, 0"
+    })
+    void shouldCheckIfFilteredPostsAreReturned(String title, int size) {
+        //when
         postService.upsertUnmodified();
-        List<PostResponse> posts = postService.getAllActivePostsByTitle(null);
+        //and
+        List<PostResponse> posts = postService.getAllWithFilters(title);
 
-        Assert.assertEquals(MODIFIED, posts.get(0).getPostStatus());
-        Assert.assertEquals(DELETED, posts.get(1).getPostStatus());
-        Assert.assertEquals(NEW, posts.get(2).getPostStatus());
+        //then
+        assertEquals(posts.size(), size);
+    }
+
+    @Test
+    @DisplayName("Should verify that posts marked as deleted have status DELETED.")
+    void shouldAppearAsDeleted() {
+        //given
+        Integer postIdToDelete = 1;
+        //when
+        postService.upsertUnmodified();
+        //and
+        postService.markPostAsDeleted(postIdToDelete);
+        final PostResponse foundPost = postService.getPostById(postIdToDelete);
+        //then
+        assertEquals(DELETED, foundPost.getPostStatus());
+    }
+
+    @Test
+    @DisplayName("Should check if Modified posts statuses are MODIFIED.")
+    void shouldCheckForModifiedStatus() {
+        //given
+        Integer postToModify = 1;
+
+        //when
+        postService.upsertUnmodified();
+        //and
+        postService.updateTitleAndBodyById(postToModify, "Get back", "Blackbird");
+        final PostResponse foundPost = postService.getPostById(postToModify);
+
+        //then
+        assertEquals(MODIFIED, foundPost.getPostStatus());
+    }
+
+    @Test
+    @DisplayName("Should verify that Modified posts stay as they were.")
+    void shouldFetchUnmodifiedPosts() {
+        //given
+        Integer postToModify = 1;
+
+        //when
+        postService.upsertUnmodified();
+        //and
+        postService.updateTitleAndBodyById(postToModify, "Strawberry field", "Penny Lane");
+        final PostResponse foundPost = postService.getPostById(postToModify);
+
+        //then
+        assertEquals(MODIFIED, foundPost.getPostStatus());
+
+        //when
+        postService.upsertUnmodified();
+        final PostResponse modifiedPost = postService.getPostById(postToModify);
+
+        //then
+        assertEquals(MODIFIED, modifiedPost.getPostStatus());
     }
 }

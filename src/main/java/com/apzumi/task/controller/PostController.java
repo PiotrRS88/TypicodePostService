@@ -20,7 +20,7 @@ public class PostController {
 
     @GetMapping("/posts")
     public List<PostResponse> getPosts(@RequestParam(required = false) String title) {
-        return postService.getAllActivePostsByTitle(title);
+        return postService.getAllWithFilters(title);
     }
 
     @PostMapping("/fetchposts")
