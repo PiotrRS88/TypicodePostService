@@ -20,11 +20,8 @@ PUT http://localhost:8080/posts/1  <br/>
 Endpoint to delete post with id 1: <br/>
 DELETE http://localhost:8080/posts/1  <br/>
 <br/>
-Endpoint to delete post with id 1: <br/>
-DELETE http://localhost:8080/posts/1  <br/>
-<br/>
 Endpoint to get all posts: <br/>
 GET http://localhost:8080/posts  <br/>
 <br/>
-Endpoint to get post by given title: <br/>
+Endpoint to get posts by given title: <br/>
 GET http://localhost:8080/posts?title=New%20title <br/>
