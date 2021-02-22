@@ -1,5 +1,5 @@
 # TypicodePostService
-Running backend application can be done by:<br/>
+This application provides a facade for Typicode posts. <be/> It's based on Java 8, Feign Client and WireMock for testing.<br/> Running backend application can be done by:<br/>
 mvn spring-boot:run
 
 Application starts in endpoint as below:
